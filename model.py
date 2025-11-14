@@ -118,12 +118,13 @@ def compute_metrics(eval_pred):
 
 training_args = TrainingArguments(
     output_dir="C:/Users/sorvi/Downloads/segmentation-finetuned",
-    learning_rate=5e-3,
+    learning_rate=5e-5,
     num_train_epochs=3,
-    per_device_train_batch_size=4,
-    per_device_eval_batch_size=4,
-    save_steps=100,
-    eval_steps=100,
+    per_device_train_batch_size=2,
+    per_device_eval_batch_size=1,
+    save_steps=5000,
+    eval_steps=5000,
+    logging_steps=10,
     logging_dir="./logs",
     eval_strategy="steps",
     save_strategy="steps",

@@ -1,3 +1,12 @@
+import sys
+import os
+
+# Добавляем путь к пользовательским пакетам
+user_site_packages = os.path.expanduser("~/AppData/Roaming/Python/Python313/site-packages")
+if user_site_packages not in sys.path:
+    sys.path.insert(0, user_site_packages)
+
+import torch
 import requests
 from PIL import Image
 import os
@@ -5,7 +14,6 @@ from torch.utils.data import Dataset, ConcatDataset
 from transformers import AutoProcessor, AutoModelForSemanticSegmentation
 from transformers import TrainingArguments, Trainer
 import evaluate
-import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from help_class import SegFormerWithResize, SegmentationDataset, SimpleMetricsCallback
@@ -143,6 +151,10 @@ trainer = Trainer(
 )
 
 print("Начинаем обучение...")
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+training_args.disable_tqdm = False
+training_args.logging_steps = 10
 trainer.train()
 
 metrics_callback.plot_metrics()

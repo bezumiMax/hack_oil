@@ -7,7 +7,6 @@ import numpy as np
 
 
 
-
 train_input_dir = "C:/Users/sorvi/Downloads/dataset/train/input"
 train_target_dir = "C:/Users/sorvi/Downloads/dataset/train/target"
 

@@ -1,20 +1,24 @@
 import requests
 from PIL import Image
 import os
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, ConcatDataset
 from transformers import AutoProcessor, AutoModelForSemanticSegmentation
 from transformers import TrainingArguments, Trainer
 import evaluate
 import torch
 import numpy as np
-from help_class import SegFormerWithResize, SegmentationDataset
+import matplotlib.pyplot as plt
+from help_class import SegFormerWithResize, SegmentationDataset, SimpleMetricsCallback
 from for_cross_entropy import CUSTOM_CLASS_NAMES, GRAY_TO_CLASS_MAPPING
+
+
+
+metrics_callback = SimpleMetricsCallback()
 
 def create_custom_segformer(model_name="nvidia/segformer-b0-finetuned-ade-512-512"):    
     processor = AutoProcessor.from_pretrained(model_name)
     original_model = AutoModelForSemanticSegmentation.from_pretrained(model_name)
 
-    # Создаем обертку с новыми классами
     model = SegFormerWithResize(
         original_model=original_model,
         num_new_classes=len(CUSTOM_CLASS_NAMES),
@@ -87,9 +91,6 @@ val_dataset = SegmentationDataset(
     gray_mapping=GRAY_TO_CLASS_MAPPING
 )
 
-
-
-# Загружаем метрику
 metric = evaluate.load("mean_iou")
 
 def compute_metrics(eval_pred):
@@ -129,24 +130,23 @@ combined_dataset = ConcatDataset([
     train_dataset1,
     train_dataset2, 
     train_dataset3,
-    train_dataset4,
-    train_dataset5
+    train_dataset4
 ])
 
-# Создаем тренер
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=combined_dataset,
     eval_dataset=val_dataset,
     compute_metrics=compute_metrics,
+    callbacks=[metrics_callback],
 )
 
-# Запускаем обучение
 print("Начинаем обучение...")
 trainer.train()
 
-# Сохраняем модель после обучения
+metrics_callback.plot_metrics()
+
 trainer.save_model()
 processor.save_pretrained("./segmentation-finetuned")
 print("Обучение завершено и модель сохранена!")

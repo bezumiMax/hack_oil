@@ -64,3 +64,45 @@ class SegFormerWithResize(nn.Module):
         )
         
         return outputs
+
+
+class SimpleMetricsCallback:
+    def __init__(self):
+        self.train_losses = []
+        self.eval_losses = []
+        self.eval_ious = []
+        self.steps = []
+        
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if logs is not None:
+            if 'loss' in logs:
+                self.train_losses.append(logs['loss'])
+                self.steps.append(state.global_step)
+            if 'eval_loss' in logs:
+                self.eval_losses.append(logs['eval_loss'])
+            if 'eval_mean_iou' in logs:
+                self.eval_ious.append(logs['eval_mean_iou'])
+    
+    def plot_metrics(self):
+        plt.figure(figsize=(12, 4))
+        
+        plt.subplot(1, 2, 1)
+        plt.plot(self.steps[:len(self.train_losses)], self.train_losses, 'b-', label='Train Loss')
+        if self.eval_losses:
+            plt.plot(self.steps[:len(self.eval_losses)], self.eval_losses, 'r-', label='Eval Loss')
+        plt.xlabel('Steps')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        
+        plt.subplot(1, 2, 2)
+        if self.eval_ious:
+            plt.plot(self.steps[:len(self.eval_ious)], self.eval_ious, 'g-', label='Mean IoU')
+            plt.xlabel('Steps')
+            plt.ylabel('Mean IoU')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        plt.savefig('C:/Users/sorvi/Downloads/training_metrics.png', dpi=150, bbox_inches='tight')
+        plt.close()

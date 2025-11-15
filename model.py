@@ -78,6 +78,7 @@ train_dataset2 = SegmentationDataset(
     gray_mapping=GRAY_TO_CLASS_MAPPING
 )
 
+'''
 train_dataset3 = SegmentationDataset(
     input_dir=train_input_dir3,
     target_dir=train_target_dir3,
@@ -93,6 +94,7 @@ train_dataset4 = SegmentationDataset(
     size=(640, 640),
     gray_mapping=GRAY_TO_CLASS_MAPPING
 )
+'''
 
 val_dataset = SegmentationDataset(
     input_dir=val_input_dir,
@@ -133,8 +135,8 @@ training_args = TrainingArguments(
     num_train_epochs=3,
     per_device_train_batch_size=2,
     per_device_eval_batch_size=1,
-    save_steps=100,
-    eval_steps=10,
+    save_steps=10000,
+    eval_steps=10000,
     logging_steps=10,
     logging_dir="./logs",
     eval_strategy="steps",
@@ -148,9 +150,9 @@ training_args = TrainingArguments(
 combined_dataset = ConcatDataset([
     train_dataset,
     train_dataset1,
-    train_dataset2, 
-    train_dataset3,
-    train_dataset4
+    train_dataset2
+    #train_dataset3,
+    #train_dataset4
 ])
 
 trainer = Trainer(

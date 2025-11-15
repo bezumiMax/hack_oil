@@ -39,6 +39,7 @@ for image_file in image_files:
     rotated_input.save(f"C:/Users/sorvi/Downloads/dataset2/train/input/{image_file}")
     rotated_target.save(f"C:/Users/sorvi/Downloads/dataset2/train/target/{image_file}")
 
+
 for image_file in image_files:
     image_path_input = os.path.join(train_input_dir, image_file)
     image_path_target = os.path.join(train_target_dir, image_file)

@@ -5,6 +5,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset
 import numpy as np
 import matplotlib.pyplot as plt
+import gc
+from transformers import TrainerCallback
 
 
 class SegmentationDataset(Dataset):
@@ -90,9 +92,6 @@ class SegFormerWithResize(nn.Module):
             mode='bilinear', 
             align_corners=False
         )
-
-        print(resized_input.shape)
-        print(resized_labels.shape)
         
         outputs = self.original_model(
             pixel_values=resized_input, 
@@ -110,10 +109,28 @@ class SegFormerWithResize(nn.Module):
         return outputs
 
 
+
+class MemoryCleanupCallback(TrainerCallback):
+    def on_evaluate(self, args, state, control, **kwargs):
+        """Вызывается после каждой валидации"""
+        print("Очистка памяти после валидации...")
+        
+        # Принудительная сборка мусора
+        gc.collect()
+        
+        # Очистка GPU памяти
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            
+        # Очистка CPU памяти
+        torch.cuda.synchronize() if torch.cuda.is_available() else None
+
+
 class SimpleMetricsCallback:
     def __init__(self):
-        self.steps = []
+        self.train_steps = []
         self.train_losses = []
+        self.eval_steps = []
         self.eval_losses = []
         self.eval_ious = []
     
@@ -174,12 +191,12 @@ class SimpleMetricsCallback:
         return control
     
     def on_log(self, args, state, control, logs=None, **kwargs):
-        """Вызывается при логировании - здесь собираем метрики"""
         if logs is not None:
             if 'loss' in logs and 'eval_loss' not in logs:
-                self.steps.append(state.global_step)
+                self.train_steps.append(state.global_step)
                 self.train_losses.append(logs['loss'])
             elif 'eval_loss' in logs:
+                self.eval_steps.append(state.global_step)
                 self.eval_losses.append(logs['eval_loss'])
                 if 'eval_mean_iou' in logs:
                     self.eval_ious.append(logs['eval_mean_iou'])

@@ -10,14 +10,15 @@ import torch
 import requests
 from PIL import Image
 import os
-from torch.utils.data import Dataset, ConcatDataset
+from torch.utils.data import Dataset, ConcatDataset, Subset
 from transformers import AutoProcessor, AutoModelForSemanticSegmentation
 from transformers import TrainingArguments, Trainer
 import evaluate
 import numpy as np
 import matplotlib.pyplot as plt
-from help_class import SegFormerWithResize, SegmentationDataset, SimpleMetricsCallback
+from help_class import SegFormerWithResize, SegmentationDataset, SimpleMetricsCallback, MemoryCleanupCallback
 from for_cross_entropy import CUSTOM_CLASS_NAMES, GRAY_TO_CLASS_MAPPING
+import gc
 
 
 
@@ -101,6 +102,9 @@ val_dataset = SegmentationDataset(
     gray_mapping=GRAY_TO_CLASS_MAPPING
 )
 
+val_indices = list(range(0, len(val_dataset), 100))  
+small_val_dataset = Subset(val_dataset, val_indices)
+
 metric = evaluate.load("mean_iou")
 
 def compute_metrics(eval_pred):
@@ -115,8 +119,13 @@ def compute_metrics(eval_pred):
         num_labels=model.original_model.config.num_labels,
         ignore_index=255
     )
-    
-    return metrics
+
+    return {
+        "eval_loss": float(metrics.get("mean_iou", 0.0)),
+        "eval_mean_iou": float(metrics.get("mean_iou", 0.0)),
+        "eval_mean_accuracy": float(metrics.get("mean_accuracy", 0.0)),
+        "eval_overall_accuracy": float(metrics.get("overall_accuracy", 0.0))
+    }
 
 training_args = TrainingArguments(
     output_dir="C:/Users/sorvi/Downloads/segmentation-finetuned",
@@ -124,7 +133,7 @@ training_args = TrainingArguments(
     num_train_epochs=3,
     per_device_train_batch_size=2,
     per_device_eval_batch_size=1,
-    save_steps=10,
+    save_steps=100,
     eval_steps=10,
     logging_steps=10,
     logging_dir="./logs",
@@ -148,9 +157,9 @@ trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=combined_dataset,
-    eval_dataset=val_dataset,
+    eval_dataset=small_val_dataset,
     compute_metrics=compute_metrics,
-    callbacks=[metrics_callback],
+    callbacks=[metrics_callback, MemoryCleanupCallback()],
 )
 
 print("Начинаем обучение...")

@@ -24,7 +24,9 @@ from for_cross_entropy import CUSTOM_CLASS_NAMES, GRAY_TO_CLASS_MAPPING
 metrics_callback = SimpleMetricsCallback()
 
 def create_custom_segformer(model_name="nvidia/segformer-b0-finetuned-ade-512-512"):    
-    processor = AutoProcessor.from_pretrained(model_name)
+    processor = AutoProcessor.from_pretrained(model_name,
+                                              do_resize=False,
+                                            size=(512, 512))
     original_model = AutoModelForSemanticSegmentation.from_pretrained(model_name)
 
     model = SegFormerWithResize(
@@ -122,8 +124,8 @@ training_args = TrainingArguments(
     num_train_epochs=3,
     per_device_train_batch_size=2,
     per_device_eval_batch_size=1,
-    save_steps=5000,
-    eval_steps=5000,
+    save_steps=10,
+    eval_steps=10,
     logging_steps=10,
     logging_dir="./logs",
     eval_strategy="steps",

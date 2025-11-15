@@ -28,16 +28,23 @@ class SegmentationDataset(Dataset):
         image = Image.open(image_path).convert('RGB')
         mask = Image.open(mask_path).convert('L')
         mask_array = np.array(mask)
+        
         if self.gray_mapping:
             new_mask = np.zeros_like(mask_array, dtype=np.int64)
             for gray_val, class_id in self.gray_mapping.items():
                 new_mask[mask_array == gray_val] = class_id
             mask_array = new_mask
+        
+        # Отключаем ресайз в processor
         inputs = self.processor(
             images=image, 
             segmentation_maps=mask_array, 
-            return_tensors="pt"
+            return_tensors="pt",
+            do_resize=False,
+            do_normalize=True,
+            do_rescale=True
         )
+        
         return {
             'pixel_values': inputs['pixel_values'].squeeze(),
             'labels': inputs['labels'].squeeze().long()
@@ -68,7 +75,14 @@ class SegFormerWithResize(nn.Module):
     def forward(self, pixel_values, labels=None):
         batch_size = pixel_values.shape[0]
         original_size = pixel_values.shape[2:]
-        
+
+        # танцы с бубном
+        resized_labels = torch.nn.functional.interpolate(
+            labels.unsqueeze(1).float(),
+            size=(512, 512), 
+            mode='nearest',
+        ).squeeze(1).long()
+
         # Уменьшаем вход: 640×640 → 512×512
         resized_input = torch.nn.functional.interpolate(
             pixel_values, 
@@ -76,8 +90,14 @@ class SegFormerWithResize(nn.Module):
             mode='bilinear', 
             align_corners=False
         )
+
+        print(resized_input.shape)
+        print(resized_labels.shape)
         
-        outputs = self.original_model(pixel_values=resized_input, labels=labels)
+        outputs = self.original_model(
+            pixel_values=resized_input, 
+            labels=resized_labels
+        )
         
         # Увеличиваем выход обратно: 512×512 → 640×640
         outputs.logits = torch.nn.functional.interpolate(

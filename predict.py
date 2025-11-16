@@ -38,22 +38,17 @@ def predict_patch(patch):
 
 def process_large_image(image):
     full_mask = np.zeros((3200, 3200), dtype=np.uint8)
-    # Обрабатываем каждый патч 640x640
-    for i in range(5):  # 5 строк
-        for j in range(5):  # 5 столбцов
-            # Координаты патча
+    for i in range(5):
+        for j in range(5):
             x_start = j * 640
             y_start = i * 640
             x_end = x_start + 640
             y_end = y_start + 640
             
-            # Вырезаем патч
             patch = image.crop((x_start, y_start, x_end, y_end))
             
-            # Предсказываем маску для патча
             mask_patch = predict_patch(patch)
             
-            # Вставляем маску патча в полную маску
             full_mask[y_start:y_end, x_start:x_end] = mask_patch
             
             print(f"Обработан патч ({i},{j})")
